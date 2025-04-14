@@ -5,3 +5,4 @@ unidecode
 openpyxl
 matplotlib
 seaborn
+streamlit-echarts
