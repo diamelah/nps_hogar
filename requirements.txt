@@ -1,0 +1,7 @@
+streamlit
+pandas
+altair
+unidecode
+openpyxl
+matplotlib
+seaborn
