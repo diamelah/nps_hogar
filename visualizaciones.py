@@ -91,6 +91,32 @@ def mostrar_analisis_tematica(df):
             "Centro Atención": "{:.2f}%",
             "Cantidad": "{:,.0f}"
         }))
+        
+        # ⬇️ Agregamos la tabla específica solo para FTTH debajo de la general
+        st.subheader("📋 Temas detectados vs SCORE - Tecnología FTTH")
+
+        df["score"] = pd.to_numeric(df["score"], errors="coerce")
+        df_ftth = df[df["tecnologia"].astype(str).str.upper() == "FTTH"].copy()
+        todos_los_scores = sorted(df["score"].dropna().unique())
+
+        tabla_ftth = pd.pivot_table(
+            df_ftth,
+            values="verbatim",
+            index="tema_detectado",
+            columns="score",
+            aggfunc="count",
+            fill_value=0
+        )
+
+        for score in todos_los_scores:
+            if score not in tabla_ftth.columns:
+                tabla_ftth[score] = 0
+
+        tabla_ftth = tabla_ftth[sorted(tabla_ftth.columns)]
+        tabla_ftth.columns = [f"SCORE {col}" for col in tabla_ftth.columns]
+        tabla_ftth.index.name = "FTTH"
+
+        st.dataframe(tabla_ftth)
 
 
     # --- Uso de app y detractores ---
@@ -208,6 +234,7 @@ def mostrar_detractores_por_tema(df):
 
 def mostrar_temas_por_mes(df):
     import streamlit as st
+    from streamlit_echarts import st_echarts
 
     st.subheader("📋 Cantidad de temas detectados por mes")
 
@@ -228,14 +255,25 @@ def mostrar_temas_por_mes(df):
     orden_meses = ["Enero", "Febrero", "Marzo"]
     temas_por_mes = temas_por_mes.reindex(columns=orden_meses, fill_value=0)
 
-    st.dataframe(temas_por_mes)
+    # --- Nueva columna: No se contactan ---
+    df["centro_atencion"] = df["centro_atencion"].fillna("").astype(str).str.lower().str.strip()
+    df_no_contacto = df[df["centro_atencion"] == "no"]
+    no_se_contactan = df_no_contacto.groupby("tema_detectado").size().rename("No se contactaron")
+
+    # Unir con tabla
+    tabla_completa = temas_por_mes.copy()
+    tabla_completa["No se contactaron"] = no_se_contactan
+    tabla_completa["No se contactaron"] = tabla_completa["No se contactaron"].fillna(0).astype(int)
+
+    # Mostrar tabla
+    st.dataframe(tabla_completa)
 
     # Gráfico de barras apiladas horizontales
     chart_data = [
         {
             "name": mes,
             "type": "bar",
-            "stack": "total",  # ✅ apiladas
+            "stack": "total",
             "label": {"show": True},
             "emphasis": {"focus": "series"},
             "data": temas_por_mes[mes].tolist()
@@ -252,6 +290,10 @@ def mostrar_temas_por_mes(df):
     }
 
     st_echarts(options=options, height="500px")
+
+
+
+
 
 
 def mostrar_palabras_clave(df):
