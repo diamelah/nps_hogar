@@ -125,29 +125,28 @@ def mostrar_analisis_tematica(df):
         mostrar_evolucion_score(df)
         
 def mostrar_evolucion_score(df):
+    import streamlit as st
+    import altair as alt
+
     st.subheader("📊 Verbatims por Temas Detectados y SCORE")
 
     df["score"] = pd.to_numeric(df["score"], errors='coerce')
     df_valid = df[df["score"].isin([0, 1, 8]) & df["tema_detectado"].notna()].copy()
 
-    # 🔢 Top N temas más mencionados
-    top_n = 5
-    top_temas = (
-        df_valid.groupby("tema_detectado")
-        .size()
-        .sort_values(ascending=False)
-        .head(top_n)
-        .index.tolist()
+    # 🔢 Obtener todos los temas detectados disponibles
+    temas_disponibles = sorted(df_valid["tema_detectado"].dropna().unique())
+
+    # 🎯 Selector interactivo con multiselección
+    temas_seleccionados = st.multiselect(
+        "🎯 Seleccioná los temas a visualizar",
+        options=temas_disponibles,
+        default=temas_disponibles[:5],  # top 5 por defecto
+        key="multiselect_score"
     )
 
-    # 🎯 Filtro por tema con top N como default
-    temas_disponibles = sorted(df_valid["tema_detectado"].unique())
-    temas_seleccionados = st.multiselect(
-    "🎯 Seleccioná los temas a mostrar",
-    options=temas_disponibles,
-    default=top_temas,
-    key="multiselect_score"  # ✅ clave única para evitar conflictos
-)
+    if not temas_seleccionados:
+        st.info("📌 Seleccioná al menos un tema para mostrar el gráfico.")
+        return
 
     df_filtrado = df_valid[df_valid["tema_detectado"].isin(temas_seleccionados)]
 
@@ -158,7 +157,7 @@ def mostrar_evolucion_score(df):
     )
 
     chart = alt.Chart(resumen).mark_bar().encode(
-        x=alt.X('tema_detectado:N', title='Tema Detectado', axis=alt.Axis(labelAngle=-20)),
+        x=alt.X('tema_detectado:N', title='Tema Detectado', axis=alt.Axis(labelAngle=-10, labelLimit=300)),
         xOffset='score:N',
         y=alt.Y('cantidad:Q', title='Cantidad de Verbatims'),
         color=alt.Color('score:N', title='SCORE', scale=alt.Scale(
@@ -167,7 +166,7 @@ def mostrar_evolucion_score(df):
         )),
         tooltip=['tema_detectado:N', 'score:N', 'cantidad:Q']
     ).properties(
-        width=600,
+        width=800,
         height=400,
         title="Verbatims por Tema y Score"
     )
@@ -207,30 +206,53 @@ def mostrar_detractores_por_tema(df):
     orden_meses = ["Enero", "Febrero", "Marzo"]
     temas_por_mes = temas_por_mes.reindex(columns=orden_meses, fill_value=0)
 
-    st.subheader("📋 Cantidad de detractores por tema")
+def mostrar_temas_por_mes(df):
+    import streamlit as st
+
+    st.subheader("📋 Cantidad de temas detectados por mes")
+
+    # Asegurarse de que las fechas estén bien y crear columna mes
+    df = df.copy()
+    df["fecha"] = pd.to_datetime(df["fecha"])
+    df["mes_num"] = df["fecha"].dt.month
+    df["mes_nombre"] = df["mes_num"].map({
+        1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
+        5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto",
+        9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
+    })
+
+    # Agrupar por tema y mes
+    temas_por_mes = df.groupby(["tema_detectado", "mes_nombre"]).size().unstack(fill_value=0)
+
+    # Reordenar columnas (meses)
+    orden_meses = ["Enero", "Febrero", "Marzo"]
+    temas_por_mes = temas_por_mes.reindex(columns=orden_meses, fill_value=0)
+
     st.dataframe(temas_por_mes)
 
-    chart_data_temas = [
+    # Gráfico de barras apiladas horizontales
+    chart_data = [
         {
             "name": mes,
             "type": "bar",
-            "stack": "total",
+            "stack": "total",  # ✅ apiladas
             "label": {"show": True},
             "emphasis": {"focus": "series"},
             "data": temas_por_mes[mes].tolist()
-        } for mes in orden_meses
+        } for mes in orden_meses if mes in temas_por_mes.columns
     ]
 
-    options_temas = {
+    options = {
         "tooltip": {"trigger": "axis", "axisPointer": {"type": "shadow"}},
         "legend": {"data": orden_meses},
         "grid": {"left": "3%", "right": "4%", "bottom": "3%", "containLabel": True},
         "xAxis": {"type": "value"},
         "yAxis": {"type": "category", "data": temas_por_mes.index.tolist()},
-        "series": chart_data_temas
+        "series": chart_data
     }
 
-    st_echarts(options=options_temas, height="500px")
+    st_echarts(options=options, height="500px")
+
 
 def mostrar_palabras_clave(df):
     import streamlit as st

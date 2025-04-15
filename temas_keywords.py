@@ -1,6 +1,6 @@
 temas = {
                 
-        "Atención del Representante": ["atencion", "mala atención", "maltrato", "desatencion", "asistencia", "respuesta", "pesimo", "pésima", "pésimo",
+        "Atención del Representante": ["atencion", "mala atención", "maltrato", "desatencion", "asistencia", "respuesta", 
         "no me atienden", "me atendieron mal", "representantes soberbios y maleducados", "destrato total", "atienden sin ganas", "maltrato del empleado", 
         "pésima gestión atención telefónica", "el asesor no tenía ganas de  hablar", "los operadores son  nefastos al momento de explicar", 
         "el operador me atendió de mala gana", "la atencion fue pedante y no resolutiva", "la atención es pésima", "falta de seriedad", 
@@ -43,9 +43,6 @@ temas = {
         "Flow": ["flow", "no funciona flow", "nunca pude habilitar flow", "no tengo flow", "streaming", "decodificador", 
         "decodificadores", "control remoto", "guia", "grilla", "canales", "no funciona el control remoto"],
         
-        "El Servicio": ["bueno", "buena", "buen", "excelente", "mal servicio", "mal", "desastre", "imposible", "falta de", "debil", "regular", 
-        "conforme", "estoy", "no es", "todos son", "sin", "no estoy"],
-        
         "IVR": [ "no atienden", "sin atención", "no hay atención",
         "llamás y nadie", "no contestan", "nadie contesta", "nunca me atendieron",
         "no atiende nadie", "nunca atienden", "me cansé de marcar",
@@ -73,7 +70,7 @@ temas = {
         "promociones", "descuentos", "descuento", "planes"],
         
         "Funcionamiento del Servicio": ["el servicio es", "días sin servicio", "sin internet", "mala cobertura", "servicio pésimo", "servicio malísimo", "no resuelven los desperfectos técnicos", 
-        "muy lento internet", "mal servicio", "nunca me funcionó bien", "servicio irregular",
+        "muy lento internet", "mal servicio", "nunca me funcionó bien", "servicio irregular", "bueno", "buena", "buen", "excelente", "mal servicio", "desastre",  "regular",
         "mala velocidad", "mala conexión", "mala señal", "estabilidad", "baja cobertura y alto costo", "el servicio se corta", "el servicio se vive cortando", 
         "problemas con internet y wi fi", "anda mal", "microcortes", "no funciona", "wifi", "se corta", "el servicio funciona con falla", "servicio flojo", "servicio se cae", 
         "mala calidad del servicio", "estuvo funcionando medio mal", "poca señal", "se pixela", 
@@ -83,7 +80,7 @@ temas = {
         "servicio se interrumpe muy seguido", "servicio se cuelga", "tecnología vieja", "no tiene suficiente enlace", "streaming", "sigo sin teléfono", 
         "desperfectos técnicos", "no me funciona la fibra", "no llega el wi fi",  
         "no puedo usar flow" "no toma la contraseña", "los canales no tienen buena señal", "cada vez que miro una película se corta", 
-        "no es tan veloz como pensaba", "cortan el servicio y está pagado", "se corta la señal", "pésima señal"],
+        "no es tan veloz como pensaba", "cortan el servicio y está pagado", "se corta la señal", "pesima señal", "pesimo"],
         
         "Resolución": ["no me solucionan", "no resuelven", "no resuelven reclamos", 
         "no puedo resolver", "no toman mi inconveniente", "no me dan información", "complicado resolver", 

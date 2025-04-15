@@ -4,7 +4,7 @@ from tema_detector import detectar_tema
 from filtros import mostrar_filtros
 from visualizaciones import (
     mostrar_analisis_tematica,
-    mostrar_detractores_por_tema,
+    mostrar_temas_por_mes,  # ✅ nuevo bloque que creamos
     mostrar_palabras_clave,
     
 )
@@ -22,6 +22,6 @@ if uploaded_file:
     df["tema_detectado"] = df["verbatim"].apply(detectar_tema)
 
     mostrar_analisis_tematica(df)
-    mostrar_detractores_por_tema(df)
+    mostrar_temas_por_mes(df)  # ✅ reemplaza a mostrar_detractores_por_tema
     mostrar_palabras_clave(df)
-
+    
