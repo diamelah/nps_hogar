@@ -1,7 +1,7 @@
-import streamlit as st
-import pandas as pd
-
 def mostrar_filtros(df):
+    import streamlit as st
+    import pandas as pd
+
     df["fecha"] = pd.to_datetime(df["fecha"], errors="coerce")
     df = df.dropna(subset=["fecha"])
     df["solo_fecha"] = df["fecha"].dt.date
@@ -24,6 +24,7 @@ def mostrar_filtros(df):
     canal_filtrar = st.sidebar.multiselect(
         "Canal de Atención", options=df["canal_atencion"].dropna().unique()
     )
+    solo_con_no_por_que = st.sidebar.checkbox("📝 Mostrar solo comentarios en 'no_por_que'")
     categoria_filtrar = st.sidebar.multiselect(
         "Categorias", options=df["categoria"].dropna().unique()
     )
@@ -32,6 +33,8 @@ def mostrar_filtros(df):
         df = df[df["grupo_nps"].isin(grupo_nps_filtrar)]
     if canal_filtrar:
         df = df[df["canal_atencion"].isin(canal_filtrar)]
+    if solo_con_no_por_que:
+        df = df[df["no_por_que"].notna() & (df["no_por_que"].astype(str).str.strip() != "")]
     if categoria_filtrar:
         df = df[df["categoria"].isin(categoria_filtrar)]
 

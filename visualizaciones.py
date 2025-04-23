@@ -3,14 +3,28 @@ import pandas as pd
 from temas_keywords import temas
 from streamlit_echarts import st_echarts
 import altair as alt
+from unidecode import unidecode
 
 # --- Detectar tema (usa temas importado globalmente) ---
-def detectar_tema(texto):
+def detectar_temas(texto, temas_dict):
     texto = str(texto).lower()
-    for tema, palabras in temas.items():
-        if any(p in texto for p in palabras):
-            return tema
+    palabras = texto.split()
+    encontrados = []
+    texto = unidecode(str(texto).lower())
+    palabras_texto = set(texto.replace(",", "").replace(".", "").split())
+
+    for tema, tokens in temas.items():
+        for token in tokens:
+            token = unidecode(token.lower())
+            if "+" in token:
+                subpalabras = set(token.split("+"))
+                if subpalabras.issubset(palabras_texto):
+                    return tema
+            else:
+                if token in texto:
+                    return tema
     return None
+
 
 # --- Mostrar análisis temático de verbatims ---
 def mostrar_analisis_tematica(df):
@@ -238,9 +252,11 @@ def mostrar_temas_por_mes(df):
 
     st.subheader("📋 Cantidad de temas detectados por mes")
 
-    # Asegurarse de que las fechas estén bien y crear columna mes
+    # Convertir fechas por si vinieran en string
     df = df.copy()
-    df["fecha"] = pd.to_datetime(df["fecha"])
+    df["fecha"] = pd.to_datetime(df["fecha"], errors="coerce")
+
+    # Crear columna mes con nombres en español
     df["mes_num"] = df["fecha"].dt.month
     df["mes_nombre"] = df["mes_num"].map({
         1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
@@ -248,11 +264,15 @@ def mostrar_temas_por_mes(df):
         9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
     })
 
+    # Generar orden dinámico de los meses que efectivamente existen en el dataframe filtrado
+    orden_meses = df["mes_nombre"].dropna().unique().tolist()
+    orden_meses = sorted(orden_meses, key=lambda x: [
+        "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+        "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+    ].index(x))
+
     # Agrupar por tema y mes
     temas_por_mes = df.groupby(["tema_detectado", "mes_nombre"]).size().unstack(fill_value=0)
-
-    # Reordenar columnas (meses)
-    orden_meses = ["Enero", "Febrero", "Marzo"]
     temas_por_mes = temas_por_mes.reindex(columns=orden_meses, fill_value=0)
 
     # --- Nueva columna: No se contactan ---
@@ -260,12 +280,12 @@ def mostrar_temas_por_mes(df):
     df_no_contacto = df[df["centro_atencion"] == "no"]
     no_se_contactan = df_no_contacto.groupby("tema_detectado").size().rename("No se contactaron")
 
-    # Unir con tabla
+    # Unir con tabla principal
     tabla_completa = temas_por_mes.copy()
     tabla_completa["No se contactaron"] = no_se_contactan
     tabla_completa["No se contactaron"] = tabla_completa["No se contactaron"].fillna(0).astype(int)
 
-    # Mostrar tabla
+    # Mostrar tabla final
     st.dataframe(tabla_completa)
 
     # Gráfico de barras apiladas horizontales
@@ -292,21 +312,22 @@ def mostrar_temas_por_mes(df):
     st_echarts(options=options, height="500px")
 
 
-
-
-
-
 def mostrar_palabras_clave(df):
     import streamlit as st
+    from streamlit_echarts import st_echarts
     from temas_keywords import temas
+    import pandas as pd
 
     df_original = df.copy()
     df_original["tema_detectado"] = df_original["verbatim"].apply(lambda x: detectar_tema(x, temas))
-    df_detractores = df_original[
-        df_original["grupo_nps"].astype(str).str.lower() == "detractor"
-    ]
+    df_detractores = df_original[df_original["grupo_nps"].astype(str).str.lower() == "detractor"]
+
+    # ✅ Agregar columna de mes en texto (español)
     df_detractores["mes_num"] = df_detractores["fecha"].dt.month
-    df_detractores["mes_nombre"] = df_detractores["mes_num"].map({1: "Enero", 2: "Febrero", 3: "Marzo"})
+    df_detractores["mes"] = df_detractores["mes_num"].map({
+        1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril", 5: "Mayo", 6: "Junio",
+        7: "Julio", 8: "Agosto", 9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
+    })
 
     st.subheader("🔍 Palabras clave por tema detectado")
     temas_disponibles = sorted(df_original["tema_detectado"].dropna().unique())
@@ -323,12 +344,22 @@ def mostrar_palabras_clave(df):
         for palabra in frases:
             subset = df_detractores[df_detractores["verbatim"].astype(str).str.lower().str.contains(palabra, regex=False)]
             for _, fila in subset.iterrows():
-                registros.append({"palabra": palabra, "mes": fila["mes_nombre"]})
+                registros.append({"palabra": palabra, "mes": fila["mes"]})
 
     df_palabras = pd.DataFrame(registros)
     if df_palabras.empty:
         st.warning("⚠️ No se encontraron ocurrencias para las palabras clave del tema seleccionado.")
         return
+
+    # ✅ Meses en orden fijo y seguro
+    meses_orden = [
+        "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+        "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+    ]
+    orden_meses = [m for m in meses_orden if m in df["fecha"].dt.month.map({
+        1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril", 5: "Mayo", 6: "Junio",
+        7: "Julio", 8: "Agosto", 9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
+    }).unique()]
 
     df_palabras["conteo"] = 1
     pivot_ocurrencias = (
@@ -337,7 +368,7 @@ def mostrar_palabras_clave(df):
         .sum()
         .reset_index()
         .pivot_table(index="palabra", columns="mes", values="conteo", aggfunc="sum", fill_value=0)
-        .reindex(columns=["Enero", "Febrero", "Marzo"], fill_value=0)
+        .reindex(columns=orden_meses, fill_value=0)
     )
 
     top_n = st.slider("🔢 Mostrar top N palabras más frecuentes", min_value=3, max_value=30, value=10)
@@ -354,12 +385,12 @@ def mostrar_palabras_clave(df):
             "label": {"show": True},
             "emphasis": {"focus": "series"},
             "data": pivot_ocurrencias[mes].tolist()
-        } for mes in ["Enero", "Febrero", "Marzo"]
+        } for mes in orden_meses
     ]
 
     options_keywords = {
         "tooltip": {"trigger": "axis", "axisPointer": {"type": "shadow"}},
-        "legend": {"data": ["Enero", "Febrero", "Marzo"]},
+        "legend": {"data": orden_meses},
         "grid": {"left": "3%", "right": "4%", "bottom": "3%", "containLabel": True},
         "xAxis": {"type": "value"},
         "yAxis": {"type": "category", "data": pivot_ocurrencias.index.tolist()},

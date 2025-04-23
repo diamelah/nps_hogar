@@ -1,11 +1,17 @@
 temas = {
                 
-        "Atención del Representante": ["atencion", "mala atención", "maltrato", "desatencion", "asistencia", "respuesta", 
-        "no me atienden", "me atendieron mal", "representantes soberbios y maleducados", "destrato total", "atienden sin ganas", "maltrato del empleado", 
-        "pésima gestión atención telefónica", "el asesor no tenía ganas de  hablar", "los operadores son  nefastos al momento de explicar", 
-        "el operador me atendió de mala gana", "la atencion fue pedante y no resolutiva", "la atención es pésima", "falta de seriedad", 
-        "respeto al cliente", "re mala atención", "mala antencion", "la atención es una porquería", "cliente", "clientes", "soy cliente", "no soy cliente",
-        "me mude", "mudanza", "cambio de"],
+        "Atención del Representante": ["maltrato", "desatencion", "respuesta rapida" , "rapida respuesta",
+        "me atendieron mal", "representantes soberbios y maleducados", "destrato total", "atienden sin ganas", "maltrato del empleado", 
+        "pesima gestion atención telefonica", "el asesor no tenía ganas de  hablar", "los operadores son  nefastos al momento de explicar", 
+        "el operador me atendio de mala gana", "la atencion fue pedante y no resolutiva", "la atencion es pesima", "falta de seriedad", 
+        "respeto al cliente", "mala atencion", "la atencion es una porquería", 
+        ],
+        
+        "Cadom": ["me mude", "mudanza", "cambio de domicilio"],
+        
+        "Catit": ["cambio de titularidad", "el titular"],
+        
+        "Catec": ["cambio de decodificador", "cambio del modem", "la nueva tecnlogia", "cambio de deco"],
         
         "Precio": ["precio", "caro", "muy caro", "muy alto", "alto", "es caro", "costo alto", "mucho en la factura", "precio alto", 
         "pago mucho", "precios elevados", "muy caro", "carisimo", "es una estafa", "abono elevado", "precios abusivos", 
@@ -31,11 +37,11 @@ temas = {
         "homebanking", "no logro pagar", "no se puede pagar", 
         "cobro antes del vencimiento"],
         
-        "Atención Técnico": ["técnico", "tecnica", "servicio", "mal servicio", "cita", "demora", "no vino", "no me dieron", 
-        "me dejaron", "no tengo", "no me dan", "tardan", "tardaron", "poco serio", "instalacion precaria"],
+        "Atención Técnico": ["el técnico", "tecnica", "el servicio tecnico", "mal servicio tecnico", "cita", "demora", "no vino el", 
+        "tardaron", "instalacion precaria", "instalacion"],
         
         "Cita Técnica": ["no vinieron", "no me avisaron", "esperé toda la mañana", 
-        "me dijeron que reagende", "nunca me lo instalaron", 
+        "me dijeron que reagende", "nunca me lo instalaron", "me dejaron plantado", "me dejaron plantada", 
         "fueron a otro domicilio", "prometieron día y hora", 
         "ni siquiera aparecieron", "bot avisó horas más tarde", 
         "no cumplieron con la cita", "fallaron en la instalación"],
@@ -43,7 +49,7 @@ temas = {
         "Flow": ["flow", "no funciona flow", "nunca pude habilitar flow", "no tengo flow", "streaming", "decodificador", 
         "decodificadores", "control remoto", "guia", "grilla", "canales", "no funciona el control remoto"],
         
-        "IVR": [ "no atienden", "sin atención", "no hay atención",
+        "IVR": [ "no atienden", "sin atención", "no hay atención", "no me atienden",
         "llamás y nadie", "no contestan", "nadie contesta", "nunca me atendieron",
         "no atiende nadie", "nunca atienden", "me cansé de marcar",
         "no puedo comunicarme", "imposible comunicarse", "no me atienden",
@@ -90,9 +96,20 @@ temas = {
         "me transfieren", "me pasen de un lado al otro", "la parte administrativa es de terror", "solucionar", "respuesta", "garantía", "whatsapp", "wsp", "no solucionan", "no resuelven", "reclamos", "resolver problema", 
         "problemas", "inconveniente", "complicado resolverlo", "imposible", "llamar", "dando vueltas", "tardando mucho", "mil vueltas", 
         "mal manejo", "no me ayudan", "ayudaron", "no tengo respuesta", "administrativa", "me cortaron", "volver a llamar", "ventas me cortó", 
-        "me cortan", "volvi a llamar", "solución", "historial", "cambio", "dar de"],
+        "me cortan", "volvi a llamar", "solución", "historial", "cambio", "dar de baja", "dar de alta"],
         
         "atencion en la venta": ["contratar", "mala experiencia", "contraté", "lo contratado", "no informan bien", "comprar", "condiciones del abono"],
         
         "App/Web/whatssApp": ["whatsapp", "web", "app mi personal", "la app movil", "personal pay", "instagram", "twitter"],
     }
+
+# --- Función para normalizar frases ignorando el orden de las palabras ---
+def normalizar_frase(frase):
+    palabras = frase.lower().split()
+    return " ".join(sorted(palabras))
+
+# --- Diccionario con frases normalizadas (para usar en el tagging) ---
+temas_normalizados = {
+    tema: [normalizar_frase(token) for token in tokens]
+    for tema, tokens in temas.items()
+}
