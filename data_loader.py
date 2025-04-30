@@ -30,7 +30,7 @@ def renombrar_columnas(df):
         "Q125- A tráves de que canal te contactaste:": "canal_atencion",
         "Q14 - En el último mes, ¿Te contactaste con nuestro centro de atención al cliente...": "centro_atencion",
         "¿Tu problema fue resuelto?": "resuelto",
-        "PERSONA_DOCUMENTO_NUMERO": "dni",
+        "CUENTA_CODIGO": "cuenta_codigo",
         "SCORE": "score",
         "SEGMENTO1": "segmento",
         "TECNOLOGIA": "tecnologia",
