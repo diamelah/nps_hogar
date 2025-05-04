@@ -23,45 +23,32 @@ if uploaded_file:
     df["tema_detectado"] = df["verbatim"].apply(detectar_tema)
     
     # ──────────────────────────────────────────
-    #  MÉTRICAS – Total + tres categorías
+    #  NUEVAS MÉTRICAS – Encuestas · Verbatims · Verbatims vacíos
     # ──────────────────────────────────────────
-    from unidecode import unidecode
-
-    def norm(txt):
-        """Minúsculas + sin tildes + strip."""
-        return unidecode(str(txt)).lower().strip()
+    import re
 
     total_encuestas = len(df)
 
-    # Filas con tema_detectado
-    df_tema = df[df["tema_detectado"].notna()].copy()
-    df_tema["categoria_norm"] = df_tema["categoria"].apply(norm)
+    # Sólo símbolos/sin contenido alfanumérico → basura
+    def es_basura(txt: str) -> bool:
+        txt = str(txt).strip()
+        if txt == "" or txt.lower() in {"nan", "none"}:
+            return True
+        # True si NO hay ni letra (áéíóúüñ) ni dígito
+        return not bool(re.search(r"[A-Za-z0-9áéíóúüñ]", txt))
 
-    # ---- Claves normalizadas (lo que aparece en value_counts) ----
-    cat1_key = "atencion a clientes"
-    cat2_key = "facturacion y pago"
-    cat3_key = "atencion del servicio tecnico"
+    # Cantidad de verbatims vacíos/basura
+    cantidad_vacios = int(df["verbatim"].apply(es_basura).sum())
 
-    cnt_cat1 = (df_tema["categoria_norm"] == cat1_key).sum()
-    cnt_cat2 = (df_tema["categoria_norm"] == cat2_key).sum()
-    cnt_cat3 = (df_tema["categoria_norm"] == cat3_key).sum()
+    # Verbatims “válidos” = total menos basura
+    cantidad_verbatims = total_encuestas - cantidad_vacios
 
-    # ---- Etiquetas bonitas para mostrar ----
-    cat1_label = "Atención a Clientes"
-    cat2_label = "Facturación y Pago"
-    cat3_label = "Atención del Servicio Técnico"
-
-    # Fila de 4 KPI
-    col1, col2, col3, col4 = st.columns(4)
-
-    col1.metric("Encuestas", f"{total_encuestas:,}")
-    col2.metric(cat1_label, f"{cnt_cat1:,}")
-    col3.metric(cat2_label, f"{cnt_cat2:,}")
-    col4.metric(cat3_label, f"{cnt_cat3:,}")
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Q. Encuestas",        f"{total_encuestas:,}")
+    col2.metric("Q. Verbatims",        f"{cantidad_verbatims:,}")
+    col3.metric("Q. Verbatims vacíos", f"{cantidad_vacios:,}")
 
     st.divider()
-      # línea separadora antes de tus análisis
-
     
 
     mostrar_analisis_tematica(df)

@@ -33,19 +33,51 @@ def detectar_temas(texto, temas_dict):
 def mostrar_analisis_tematica(df):
     st.subheader("👉​ Análisis de Verbatims")
 
-    # Detectar temas solo si no está la columna
+    # Detectar temas si falta la columna
     if "tema_detectado" not in df.columns:
         df["tema_detectado"] = df["verbatim"].apply(detectar_tema)
 
-    df_temas = df[df["tema_detectado"].notna()]
+    # Función para detectar verbatims sin letras (solo símbolos/números)
+    import re
+    def es_basura(txt: str) -> bool:
+        txt = str(txt)
+        return not bool(re.search(r"[A-Za-záéíóúüñ]", txt))
 
-    # Checkbox para activar filtro por verbatims largos
-    filtrar_largos = st.checkbox("📝 Mostrar solo verbatims con más de 25 palabras")
+    # Selector de filtro para verbatims
+    opcion = st.radio(
+        "🔀 Tipo de verbatim:",
+        ["Todos", "Solo válidos (con letras)", "Solo basura (sin letras)"],
+        horizontal=True,
+        key="radio_basura"
+    )
+
+    # Base de datos según filtro basura/válido
+    df_base = df.copy()
+    if opcion == "Solo válidos (con letras)":
+        df_base = df_base[~df_base["verbatim"].astype(str).apply(es_basura)]
+    elif opcion == "Solo basura (sin letras)":
+        df_base = df_base[df_base["verbatim"].astype(str).apply(es_basura)]
+
+    # Iniciamos df_temas con df_base
+    df_temas = df_base.copy()
+
+    # Checkbox para verbatims largos (siempre disponible)
+    filtrar_largos = st.checkbox(
+        "📝 Mostrar solo verbatims con más de 25 palabras",
+        key="chk_largos"
+    )
     if filtrar_largos:
-        df_temas = df_temas[df_temas["verbatim"].astype(str).apply(lambda x: len(x.split()) > 25)]
+        df_temas = df_temas[df_temas["verbatim"].astype(str)
+                        .apply(lambda x: len(x.split()) > 25)]
 
-    # Filtros interactivos
-    tema_filtrar = st.multiselect("🌟 Filtrar por tema detectado", options=sorted(df_temas["tema_detectado"].unique()))
+    # Multiselect para temas detectados (si aplica)
+    temas_disp = [t for t in df_temas["tema_detectado"].unique() if t is not None]
+    temas_disp.sort()
+    tema_filtrar = st.multiselect(
+        "🌟 Filtrar por tema detectado",
+        temas_disp,
+        key="ms_temas"
+    )
     if tema_filtrar:
         df_temas = df_temas[df_temas["tema_detectado"].isin(tema_filtrar)]
         st.markdown("### 🔠 Frases clave del tema detectado")
@@ -53,30 +85,30 @@ def mostrar_analisis_tematica(df):
             frases = temas.get(tema, [])
             st.markdown(f"**{tema.capitalize()}**: {', '.join(frases)}")
 
-    search_tema = st.text_input("🔎 Buscar palabras en verbatim (temas):", "")
+    # Búsqueda de palabras exactas (siempre disponible)
+    search_tema = st.text_input(
+        "🔎 Buscar palabras en verbatim:",
+        key="txt_buscar"
+    )
     if search_tema:
-        # Normalizamos y separamos por comas
         palabras = [p.strip().lower() for p in search_tema.split(",") if p.strip()]
-
-        # Patrón regex:  \bpalabra\b  (coincidencia exacta, no sub-string)
         pattern = "|".join(rf"\b{re.escape(p)}\b" for p in palabras)
+        df_temas = df_temas[df_temas["verbatim"].astype(str)
+                              .str.lower()
+                              .str.contains(pattern, regex=True)]
 
-        df_temas = df_temas[
-            df_temas["verbatim"]
-                .astype(str)
-                .str.lower()
-                .str.contains(pattern, regex=True)
-        ]
-
-    columnas_tema = [
+    # Mostrar la tabla final con todos los campos
+    columnas = [
         "solo_fecha", "codigo_cuenta", "localidad", "grupo_nps", "categoria",
         "verbatim", "tema_detectado", "centro_atencion", "canal_atencion",
         "no_por_que", "app_mipersonal_flow"
     ]
-    columnas_tema_disponibles = [col for col in columnas_tema if col in df_temas.columns]
-    st.dataframe(df_temas[columnas_tema_disponibles])
+    cols_disp = [c for c in columnas if c in df_temas.columns]
+    st.dataframe(df_temas[cols_disp], use_container_width=True)
 
-    st.divider()  
+    st.divider()
+
+
     
     # --- Uso de app y detractores ---
     st.subheader("👉​ Uso de Aplicaciones")
