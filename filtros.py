@@ -25,8 +25,8 @@ def mostrar_filtros(df):
         "Canal de Atención", options=df["canal_atencion"].dropna().unique()
     )
     solo_con_no_por_que = st.sidebar.checkbox("📝 Mostrar solo comentarios en 'no_por_que'")
-    categoria_filtrar = st.sidebar.multiselect(
-        "Categorias", options=df["categoria"].dropna().unique()
+    pri_causa_raiz_filtrar = st.sidebar.multiselect(
+        "Primer_Causa_Raiz", options=df["pri_causa_raiz"].dropna().unique()
     )
 
     if grupo_nps_filtrar:
@@ -35,7 +35,7 @@ def mostrar_filtros(df):
         df = df[df["canal_atencion"].isin(canal_filtrar)]
     if solo_con_no_por_que:
         df = df[df["no_por_que"].notna() & (df["no_por_que"].astype(str).str.strip() != "")]
-    if categoria_filtrar:
-        df = df[df["categoria"].isin(categoria_filtrar)]
+    if pri_causa_raiz_filtrar:
+        df = df[df["pri_causa_raiz"].isin(pri_causa_raiz_filtrar)]
 
     return df

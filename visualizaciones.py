@@ -3,29 +3,29 @@ import pandas as pd
 import re
 import altair as alt
 from streamlit_echarts import st_echarts
-from temas_keywords import temas
+from dolores_keywords import dolores
 from unidecode import unidecode
+from dolor_detector import detectar_dolor
 
-from tema_detector import detectar_tema
 
-# --- Detectar tema (usa temas importado globalmente) ---
-def detectar_temas(texto, temas_dict):
+# --- Detectar dolor (usa dolores importado globalmente) ---
+def detectar_dolores(texto, dolores_dict):
     texto = str(texto).lower()
     palabras = texto.split()
     encontrados = []
     texto = unidecode(str(texto).lower())
     palabras_texto = set(texto.replace(",", "").replace(".", "").split())
 
-    for tema, tokens in temas.items():
+    for dolor, tokens in dolores.items():
         for token in tokens:
             token = unidecode(token.lower())
             if "+" in token:
                 subpalabras = set(token.split("+"))
                 if subpalabras.issubset(palabras_texto):
-                    return tema
+                    return dolor
             else:
                 if token in texto:
-                    return tema
+                    return dolor
     return None
 
 
@@ -33,9 +33,9 @@ def detectar_temas(texto, temas_dict):
 def mostrar_analisis_tematica(df):
     st.subheader("👉​ Análisis de Verbatims")
 
-    # Detectar temas si falta la columna
-    if "tema_detectado" not in df.columns:
-        df["tema_detectado"] = df["verbatim"].apply(detectar_tema)
+    # Detectar doloress si falta la columna
+    if "dolor_detectado" not in df.columns:
+        df["dolor_detectado"] = df["verbatim"].apply(detectar_dolor)
 
     # Función para detectar verbatims sin letras (solo símbolos/números)
     import re
@@ -58,8 +58,8 @@ def mostrar_analisis_tematica(df):
     elif opcion == "Solo basura (sin letras)":
         df_base = df_base[df_base["verbatim"].astype(str).apply(es_basura)]
 
-    # Iniciamos df_temas con df_base
-    df_temas = df_base.copy()
+    # Iniciamos df_dolores con df_base
+    df_dolores = df_base.copy()
 
     # Checkbox para verbatims largos (siempre disponible)
     filtrar_largos = st.checkbox(
@@ -67,44 +67,61 @@ def mostrar_analisis_tematica(df):
         key="chk_largos"
     )
     if filtrar_largos:
-        df_temas = df_temas[df_temas["verbatim"].astype(str)
+        df_dolores = df_dolores[df_dolores["verbatim"].astype(str)
                         .apply(lambda x: len(x.split()) > 25)]
 
-    # Multiselect para temas detectados (si aplica)
-    temas_disp = [t for t in df_temas["tema_detectado"].unique() if t is not None]
-    temas_disp.sort()
-    tema_filtrar = st.multiselect(
-        "🌟 Filtrar por tema detectado",
-        temas_disp,
-        key="ms_temas"
+    # Multiselect para doloress detectados (si aplica)
+    dolores_disp = [t for t in df_dolores["dolor_detectado"].unique() if t is not None]
+    dolores_disp.sort()
+    dolor_filtrar = st.multiselect(
+        "🌟 Filtrar por dolor detectado",
+        dolores_disp,
+        key="ms_dolores"
     )
-    if tema_filtrar:
-        df_temas = df_temas[df_temas["tema_detectado"].isin(tema_filtrar)]
-        st.markdown("### 🔠 Frases clave del tema detectado")
-        for tema in tema_filtrar:
-            frases = temas.get(tema, [])
-            st.markdown(f"**{tema.capitalize()}**: {', '.join(frases)}")
+    if dolor_filtrar:
+        df_dolores = df_dolores[df_dolores["dolor_detectado"].isin(dolor_filtrar)]
+        st.markdown("### 🔠 Frases clave del dolor detectado")
+        for dolor in dolor_filtrar:
+            frases = dolores.get(dolor, [])
+            st.markdown(f"**{dolor.capitalize()}**: {', '.join(frases)}")
 
     # Búsqueda de palabras exactas (siempre disponible)
-    search_tema = st.text_input(
-        "🔎 Buscar palabras en verbatim:",
+    search_dolor = st.text_input(
+        "🔎 Búsqueda por palabras (puedes separar con comas)",
         key="txt_buscar"
     )
-    if search_tema:
-        palabras = [p.strip().lower() for p in search_tema.split(",") if p.strip()]
+    if search_dolor:
+        palabras = [p.strip().lower() for p in search_dolor.split(",") if p.strip()]
+        # construimos un patrón que coincida palabra a palabra
         pattern = "|".join(rf"\b{re.escape(p)}\b" for p in palabras)
-        df_temas = df_temas[df_temas["verbatim"].astype(str)
-                              .str.lower()
-                              .str.contains(pattern, regex=True)]
+
+        # Mascara sobre verbatim
+        mask_verbatim = (
+            df_dolores["verbatim"]
+            .astype(str)
+            .str.lower()
+            .str.contains(pattern, regex=True)
+        )
+        # Mascara sobre no_por_que (llenamos nulos con cadena vacía)
+        mask_no_por = (
+            df_dolores["no_por_que"]
+            .fillna("")
+            .astype(str)
+            .str.lower()
+            .str.contains(pattern, regex=True)
+        )
+
+        # Filtramos filas donde aparezca en cualquiera de las dos columnas
+        df_dolores = df_dolores[mask_verbatim | mask_no_por]
 
     # Mostrar la tabla final con todos los campos
     columnas = [
-        "solo_fecha", "codigo_cuenta", "localidad", "grupo_nps", "categoria",
-        "verbatim", "tema_detectado", "centro_atencion", "canal_atencion",
-        "no_por_que", "app_mipersonal_flow"
+        "solo_fecha", "cuenta_codigo", "localidad", "grupo_nps", "nps", "verbatim", "pri_causa_raiz",
+        "seg_causa_raiz_Aten.Clientes", "seg_causa_raiz_Serv.Tecn.", "seg_causa_raiz_Fact.Pago", "dolor_detectado", "centro_atencion", 
+        "llamados_30D", "canal_atencion", "se_resolvio?", "no_por_que", "app_mipersonal_flow"
     ]
-    cols_disp = [c for c in columnas if c in df_temas.columns]
-    st.dataframe(df_temas[cols_disp], use_container_width=True)
+    cols_disp = [c for c in columnas if c in df_dolores.columns]
+    st.dataframe(df_dolores[cols_disp], use_container_width=True)
 
     st.divider()
 
@@ -150,20 +167,20 @@ def mostrar_analisis_tematica(df):
 # --- Tabla  Detractores Score, Segmento ---
     st.subheader("👉​ SCORE")
     st.markdown(
-    "<h3 style='font-size:22px; margin-bottom:0.5rem'>🎯​ Temas Detectados en Scores Críticos: 0, 1 y 8</h3>",
+    "<h3 style='font-size:22px; margin-bottom:0.5rem'>🎯​ Dolores Detectados en Scores Críticos: 0, 1 y 8</h3>",
     unsafe_allow_html=True
     )
 
-    if "tema_detectado" in df.columns and not df_temas.empty:
-        df_filtrado = df_temas.copy()
+    if "dolor_detectado" in df.columns and not df_dolores.empty:
+        df_filtrado = df_dolores.copy()
 
         resumen = (
             df_filtrado
             .loc[df_filtrado["score"].isin([0, 1, 8])]  # Filtrar solo scores 0, 1, 8
-            .groupby("tema_detectado")
+            .groupby("dolor_detectado")
             .agg(
-                cantidad=("tema_detectado", "count"),
-                porcentaje=("tema_detectado", lambda x: 100 * len(x) / len(df_filtrado)),
+                cantidad=("dolor_detectado", "count"),
+                porcentaje=("dolor_detectado", lambda x: 100 * len(x) / len(df_filtrado)),
                 score_0=("score", lambda x: (x == 0).sum()),
                 score_1=("score", lambda x: (x == 1).sum()),
                 score_8=("score", lambda x: (x == 8).sum()),
@@ -174,7 +191,7 @@ def mostrar_analisis_tematica(df):
         )
 
         resumen = resumen.rename(columns={
-            "tema_detectado": "Tema",
+            "dolor_detectado": "Dolor",
             "cantidad": "Cantidad",
             "porcentaje": "Porcentaje %",
             "score_0": "SCORE 0",
@@ -207,7 +224,7 @@ def mostrar_analisis_tematica(df):
 
     # 2) Encabezado dinámico
     st.markdown(
-        f"<h3 style='font-size:22px; margin-bottom:0.5rem'>🎯 Temas Detectados: Score → {tec_sel}</h3>",
+        f"<h3 style='font-size:22px; margin-bottom:0.5rem'>🎯 Dolores Detectados: Score → {tec_sel}</h3>",
         unsafe_allow_html=True
     )
 
@@ -220,7 +237,7 @@ def mostrar_analisis_tematica(df):
     tabla_tec = pd.pivot_table(
         df_tec,
         values="verbatim",
-        index="tema_detectado",
+        index="dolor_detectado",
         columns="score",
         aggfunc="count",
         fill_value=0
@@ -244,60 +261,60 @@ def mostrar_analisis_tematica(df):
     
             
 # 🔽 Gráfico justo después de las columnas
-        #st.markdown("#### 📊 Verbatims por Tema y SCORE")
+        #st.markdown("#### 📊 Verbatims por Dolor y SCORE")
         mostrar_evolucion_score(df)
         
 
-#--- Verbatims por Temas Detectados y SCORE---
+#--- Verbatims por Dolores Detectados y SCORE---
         
 def mostrar_evolucion_score(df):
     import streamlit as st
     import altair as alt
 
     st.markdown(
-    "<h3 style='font-size:22px; margin-bottom:0.5rem'>🔠​ Verbatims por Temas Detectados y SCORE</h3>",
+    "<h3 style='font-size:22px; margin-bottom:0.5rem'>🔠​ Verbatims por Dolores Detectados y SCORE</h3>",
     unsafe_allow_html=True
     )
 
     df["score"] = pd.to_numeric(df["score"], errors='coerce')
-    df_valid = df[df["score"].isin([0, 1, 8]) & df["tema_detectado"].notna()].copy()
+    df_valid = df[df["score"].isin([0, 1, 8]) & df["dolor_detectado"].notna()].copy()
 
-    # 🔢 Obtener todos los temas detectados disponibles
-    temas_disponibles = sorted(df_valid["tema_detectado"].dropna().unique())
+    # 🔢 Obtener todos los dolores detectados disponibles
+    dolores_disponibles = sorted(df_valid["dolor_detectado"].dropna().unique())
 
     # 🎯 Selector interactivo con multiselección
-    temas_seleccionados = st.multiselect(
-        "🎯 Seleccioná los temas a visualizar",
-        options=temas_disponibles,
-        default=temas_disponibles[:5],  # top 5 por defecto
+    dolores_seleccionados = st.multiselect(
+        "🎯 Seleccioná los Dolores a visualizar",
+        options=dolores_disponibles,
+        default=dolores_disponibles[:5],  # top 5 por defecto
         key="multiselect_score"
     )
 
-    if not temas_seleccionados:
-        st.info("📌 Seleccioná al menos un tema para mostrar el gráfico.")
+    if not dolores_seleccionados:
+        st.info("📌 Seleccioná al menos un dolor para mostrar el gráfico.")
         return
 
-    df_filtrado = df_valid[df_valid["tema_detectado"].isin(temas_seleccionados)]
+    df_filtrado = df_valid[df_valid["dolor_detectado"].isin(dolores_seleccionados)]
 
     resumen = (
-        df_filtrado.groupby(["tema_detectado", "score"])
+        df_filtrado.groupby(["dolor_detectado", "score"])
         .size()
         .reset_index(name="cantidad")
     )
 
     chart = alt.Chart(resumen).mark_bar().encode(
-        x=alt.X('tema_detectado:N', title='Tema Detectado', axis=alt.Axis(labelAngle=-10, labelLimit=300)),
+        x=alt.X('dolor_detectado:N', title='Dolor Detectado', axis=alt.Axis(labelAngle=-10, labelLimit=300)),
         xOffset='score:N',
         y=alt.Y('cantidad:Q', title='Cantidad de Verbatims'),
         color=alt.Color('score:N', title='SCORE', scale=alt.Scale(
             domain=[0, 1, 8],
             range=["#007bff", "#ff7f0e", "#2ca02c"]
         )),
-        tooltip=['tema_detectado:N', 'score:N', 'cantidad:Q']
+        tooltip=['dolor_detectado:N', 'score:N', 'cantidad:Q']
     ).properties(
         width=800,
         height=400,
-        title="Verbatims por Tema y Score"
+        title="Verbatims por Dolor y Score"
     )
 
     st.altair_chart(chart, use_container_width=True)
@@ -307,12 +324,12 @@ def mostrar_evolucion_score(df):
 import pandas as pd
 from streamlit_echarts import st_echarts
 
-def mostrar_detractores_por_tema(df):
+def mostrar_detractores_por_dolor(df):
     import streamlit as st
-    from temas_keywords import temas
+    from dolores_keywords import dolores
 
     df_original = df.copy()
-    df_original["tema_detectado"] = df_original["verbatim"].apply(detectar_tema)
+    df_original["dolor_detectado"] = df_original["verbatim"].apply(detectar_dolor)
     df_detractores = df_original.copy()
     df_detractores["mes_num"] = df_detractores["fecha"].dt.month
 
@@ -331,22 +348,19 @@ def mostrar_detractores_por_tema(df):
         st.info("📌 No hay detractores disponibles para enero, febrero o marzo.")
         return
 
-    temas_por_mes = df_detractores.groupby(["tema_detectado", "mes_nombre"]).size().unstack(fill_value=0)
+    dolores_por_mes = df_detractores.groupby(["dolor_detectado", "mes_nombre"]).size().unstack(fill_value=0)
     orden_meses = ["Enero", "Febrero", "Marzo"]
-    temas_por_mes = temas_por_mes.reindex(columns=orden_meses, fill_value=0)
+    dolores_por_mes = dolores_por_mes.reindex(columns=orden_meses, fill_value=0)
     
 
     
 
-#--- Cantidad de temas detectados por mes ---
-def mostrar_temas_por_mes(df):
-    import streamlit as st
-    from streamlit_echarts import st_echarts
-    
+#--- Cantidad de dolores detectados por mes ---
+def mostrar_dolores_por_mes(df):
     st.divider() 
 
-    st.subheader("👉​ Temas Detectados por Mes")
-    st.markdown("Q. de Dolores y Q. de No se contactaron por nuestro Centros de Atención")
+    st.subheader("👉​ Dolores Detectados por Mes")
+    st.markdown("Dolores de clientes - Contacto / No Contacto")
 
     # Convertir fechas por si vinieran en string
     df = df.copy()
@@ -367,17 +381,17 @@ def mostrar_temas_por_mes(df):
         "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
     ].index(x))
 
-    # Agrupar por tema y mes
-    temas_por_mes = df.groupby(["tema_detectado", "mes_nombre"]).size().unstack(fill_value=0)
-    temas_por_mes = temas_por_mes.reindex(columns=orden_meses, fill_value=0)
+    # Agrupar por dolor y mes
+    dolores_por_mes = df.groupby(["dolor_detectado", "mes_nombre"]).size().unstack(fill_value=0)
+    dolores_por_mes = dolores_por_mes.reindex(columns=orden_meses, fill_value=0)
 
     # --- Nueva columna: No se contactan ---
     df["centro_atencion"] = df["centro_atencion"].fillna("").astype(str).str.lower().str.strip()
     df_no_contacto = df[df["centro_atencion"] == "no"]
-    no_se_contactan = df_no_contacto.groupby("tema_detectado").size().rename("No se contactaron")
+    no_se_contactan = df_no_contacto.groupby("dolor_detectado").size().rename("No se contactaron")
 
     # Unir con tabla principal
-    tabla_completa = temas_por_mes.copy()
+    tabla_completa = dolores_por_mes.copy()
     tabla_completa["No se contactaron"] = no_se_contactan
     tabla_completa["No se contactaron"] = tabla_completa["No se contactaron"].fillna(0).astype(int)
 
@@ -392,8 +406,8 @@ def mostrar_temas_por_mes(df):
             "stack": "total",
             "label": {"show": True},
             "emphasis": {"focus": "series"},
-            "data": temas_por_mes[mes].tolist()
-        } for mes in orden_meses if mes in temas_por_mes.columns
+            "data": dolores_por_mes[mes].tolist()
+        } for mes in orden_meses if mes in dolores_por_mes.columns
     ]
 
     options = {
@@ -401,39 +415,53 @@ def mostrar_temas_por_mes(df):
         "legend": {"data": orden_meses},
         "grid": {"left": "3%", "right": "4%", "bottom": "3%", "containLabel": True},
         "xAxis": {"type": "value"},
-        "yAxis": {"type": "category", "data": temas_por_mes.index.tolist()},
+        "yAxis": {"type": "category", "data": dolores_por_mes.index.tolist()},
         "series": chart_data
     }
 
-    st_echarts(options=options, height="500px")
+    # Capturar clic en barra
+    event = {
+        "click": "function(params) { return { mes: params.seriesName, dolor: params.name }; }"
+    }
 
-#--- Palabras clave por tema detectado ---
-def mostrar_palabras_clave(df):
-    import streamlit as st
-    from streamlit_echarts import st_echarts
-    from temas_keywords import temas
-    import pandas as pd
+    result = st_echarts(options=options, height="500px", events=event)
 
-    df_original = df.copy()
-    df_original["tema_detectado"] = df_original["verbatim"].apply(detectar_tema)
-    df_detractores = df_original[df_original["grupo_nps"].astype(str).str.lower() == "detractor"]
+    # Mostrar verbatims al hacer clic en una barra
+    if result and "mes" in result and "dolor" in result:
+        mes_click = result["mes"]
+        dolor_click = result["dolor"]
 
-    # ✅ Agregar columna de mes en texto (español)
-    df_detractores["mes_num"] = df_detractores["fecha"].dt.month
-    df_detractores["mes"] = df_detractores["mes_num"].map({
-        1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril", 5: "Mayo", 6: "Junio",
-        7: "Julio", 8: "Agosto", 9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
-    })
+        st.subheader(f"📝 Verbatims de «{dolor_click}» en «{mes_click}»")
 
-    st.divider() 
+        if "mes_nombre" not in df.columns:
+            df["mes_num"] = df["fecha"].dt.month
+            df["mes_nombre"] = df["mes_num"].map({
+                1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril", 5: "Mayo", 6: "Junio",
+                7: "Julio", 8: "Agosto", 9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
+            })
+
+        verbatims = df[
+            (df["dolor_detectado"] == dolor_click) &
+            (df["mes_nombre"] == mes_click)
+        ]["verbatim"].dropna()
+
+        if not verbatims.empty:
+            st.dataframe(verbatims.to_frame().reset_index(drop=True))
+        else:
+            st.info("No se encontraron verbatims para esta combinación.")
+    
+    st.divider()
+
+
+
 
     # ─────────────────────────────────────────────
-    #  BLOQUE: Insights por Tema Detectado
+    #  BLOQUE: Insights por Dolor Detectado
     # ─────────────────────────────────────────────
-    st.subheader("🔍 Insights por Tema Detectado")
+    st.subheader("🔍 Insights por Dolor Detectado")
     st.markdown(
         "Búsqueda de palabras y frases clave dentro de los verbatims "
-        "(clicá en la barra para ver el detalle)."
+        
     )
 
     # ── Copia completa y columnas de mes
@@ -444,20 +472,20 @@ def mostrar_palabras_clave(df):
         7:"Julio",8:"Agosto",9:"Septiembre",10:"Octubre",11:"Noviembre",12:"Diciembre"
     }
     df_original["mes"] = df_original["mes_num"].map(map_meses)
-    df_original["tema_detectado"] = df_original["verbatim"].apply(detectar_tema)
+    df_original["dolor_detectado"] = df_original["verbatim"].apply(detectar_dolor)
 
-    # ── Selector de tema
-    temas_disponibles = sorted(df_original["tema_detectado"].dropna().unique())
-    tema_filtrado = st.multiselect("🎯 Seleccioná uno o varios temas", temas_disponibles)
-    if not tema_filtrado:
-        st.info("📌 Elegí al menos un tema para continuar.")
+    # ── Selector de dolor
+    dolores_disponibles = sorted(df_original["dolor_detectado"].dropna().unique())
+    dolor_filtrado = st.multiselect("🎯 Seleccioná uno o varios dolores", dolores_disponibles)
+    if not dolor_filtrado:
+        st.info("📌 Elegí al menos un dolor para continuar.")
         st.stop()
 
     # ── Construir df_palabras
     registros = []
-    for tema in tema_filtrado:
-        frases = temas.get(tema, [])
-        st.markdown(f"**{tema.capitalize()}**: {', '.join(frases)}")
+    for dolor in dolor_filtrado:
+        frases = dolores.get(dolor, [])
+        st.markdown(f"**{dolor.capitalize()}**: {', '.join(frases)}")
         for palabra in frases:
             subset = df_original[
                 df_original["verbatim"]
@@ -532,12 +560,11 @@ def mostrar_palabras_clave(df):
                 .astype(str)
                 .str.lower()
                 .str.contains(rf"\b{re.escape(clicked_word.lower())}\b", regex=True)
-            ][["solo_fecha", "localidad", "grupo_nps", "categoria", "verbatim"]]
+            ][["solo_fecha", "localidad", "grupo_nps", "pri_causa_raiz", "verbatim"]]
             .sort_values("solo_fecha")
         )
         st.dataframe(verbatims, use_container_width=True)
     else:
         st.caption("💡 Hacé clic en una barra para ver los verbatims asociados.")
-
-
+        
 
