@@ -40,5 +40,5 @@ def renombrar_columnas(df):
         "Q6-¿Cuál de estas opciones influyó más en tu elección?-ATEN. CLIENTES": "seg_causa_raiz_Aten.Clientes",
         "Q7-¿Cuál de estas opciones influyó más en tu elección?-- SERV. TECN.": "seg_causa_raiz_Serv.Tecn.",
         "Q8-¿Cuál de estas opciones influyó más en tu elección?-FACT. Y PAGO": "seg_causa_raiz_Fact.Pago",
-        "CANT_LLAMADOS_30D": "llamados_30D"
+        "CANT_LLAMADOS_30D": "contacto_ult30"
     })

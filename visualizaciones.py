@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import re
 import altair as alt
+from datetime import datetime, timedelta
 from streamlit_echarts import st_echarts
 from dolores_keywords import dolores
 from unidecode import unidecode
@@ -118,7 +119,7 @@ def mostrar_analisis_tematica(df):
     columnas = [
         "solo_fecha", "cuenta_codigo", "localidad", "grupo_nps", "nps", "verbatim", "pri_causa_raiz",
         "seg_causa_raiz_Aten.Clientes", "seg_causa_raiz_Serv.Tecn.", "seg_causa_raiz_Fact.Pago", "dolor_detectado", "centro_atencion", 
-        "llamados_30D", "canal_atencion", "se_resolvio?", "no_por_que", "app_mipersonal_flow"
+        "contacto_ult30", "canal_atencion", "se_resolvio?", "no_por_que", "app_mipersonal_flow"
     ]
     cols_disp = [c for c in columnas if c in df_dolores.columns]
     st.dataframe(df_dolores[cols_disp], use_container_width=True)
@@ -567,4 +568,6 @@ def mostrar_dolores_por_mes(df):
     else:
         st.caption("💡 Hacé clic en una barra para ver los verbatims asociados.")
         
+
+
 
